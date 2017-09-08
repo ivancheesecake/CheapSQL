@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	<title>CheapSQL: A Prototype Single-User DBMS</title>
+	<link rel="stylesheet" type="text/css" href="{{url_for('static',filename='css/materialize.min.css')}}" />
+	<link rel="stylesheet" type="text/css" href="{{url_for('static',filename='css/style.css')}}" />
+</head>
+
+<body>
+	
+	<nav id="nav">
+		<div class="nav-wrapper blue darken-3">
+			<a href="#" class="brand-logo">
+
+				<a id="brand" class="brand-logo">CheapSQL</a>
+
+				<ul id="nav-mobile" class="right hide-on-med-and-down">
+				<li class="active"><a href="#">Home</a></li>
+				<li><a href="/reports" target="_blank">About</a></li>
+				</ul>
+
+			</a>
+		</div> 
+	</nav>
+		
+	<div class="row" id ="main">
+		
+		<div id="left" class="col s4 m4 l3 z-depth-2" >
+			Tables!
+		</div>
+		<div id="right" class="col s8 m8 l9">
+			
+			<div class="row" id="right-top">
+				<div class="valign-wrapper">
+					<h3 class="grey-text text-lighten-1">Run a query or select a table.</h3>
+
+					</div>
+			</div>
+			
+			<div class="row" id="right-bottom">
+
+			        <div class="input-field col s10" style="height:100%; margin-bottom: 0px;">
+			          <textarea id="query" class="materialize-textarea"></textarea>
+			          <label for="query">Query</label>
+			        </div>
+
+			        <div class ="col s2" style="height:100%; margin-bottom: 0px;">
+			        	<button id="run" class="btn waves-effect waves-light blue darken-3" type="submit" name="action">Run Query
+	    <i class="material-icons right">send</i>
+	  					</button> 
+
+			        </div>
+		
+
+		      
+				               
+		      	
+
+			</div>	
+
+		</div>
+
+	</div>
+	<script type="text/javascript" src="{{url_for('static',filename='js/jquery-3.2.1.min.js')}}"></script>
+	<script type="text/javascript" src="{{url_for('static',filename='js/scripts.js')}}"></script>
+	<script type="text/javascript" src="{{url_for('static',filename='js/materialize.min.js')}}"></script>
+
+</body>
+	
+</html>

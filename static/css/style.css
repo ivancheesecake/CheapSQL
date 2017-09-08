@@ -1,0 +1,64 @@
+/*
+ * General Styles
+ * * * * * * * * * * * * * * */
+
+ .row{
+
+ 	margin-bottom: 0px;
+ }
+
+ .input-field{
+ 	margin-top:0px;
+ }
+
+
+/*
+ * Navbar Styles
+ * * * * * * * * * * * * * * */
+
+ #brand{
+
+ 	margin-left: 20px;
+ }
+
+/*
+ * Left Panel Styles
+ * * * * * * * * * * * * * * */
+
+ #left{
+
+ 	height:100%;
+ }
+
+
+/*
+ * Right Panel Styles
+ * * * * * * * * * * * * * * */
+
+#right{
+
+ 	height:100%;
+ }
+
+ #right-top{
+
+ 	height: 70%;
+ }
+
+ #right-bottom{
+
+ 	height: 28%;
+ }
+
+ /* Query Pane Styles*/
+
+ #query{
+
+ 	height: 75%;
+ 	max-height: 75%;
+ }
+
+ #run{
+
+ 	margin-top: 50%;
+ }
