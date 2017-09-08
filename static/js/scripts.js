@@ -5,31 +5,43 @@ $(document).ready(function() {
 });
 
 $("#run").click(function(){
+	// data = {"query": $("#query").val()};
 
 	$.ajax({
 		url: 'http://127.0.0.1:5000/query',
 		type: 'POST',
 		dataType: 'json',
-	    success: function(resp) {
-		alert("HERE");
-		
-		// queue = resp.queue;
-		// console.log(queue)
-		// for(item in queue){
-		// 	tokens = queue[item].path.split("/");
-		// 	fname = tokens[tokens.length-1];
-		// 	// Currently being processed
-		// 	// htmlString = "<li id='"+queue[item].itemId+"'class='collection-item'><div>"+fname+"<a class='secondary-content'>Cheesecake-PC</a></div></li>"
-		// 	htmlString = "<li id='item"+queue[item].itemId+"'class='collection-item'><div><span class='tooltipped' data-position='right' data-delay='50' data-tooltip='"+queue[item].path+"'>"+fname+"</span><a href='#' data-id='"+queue[item].itemId+"'class='secondary-content remove-from-queue' ><i class='queue-clear material-icons'>clear</i></a></div></li>"
-		// 	$("#queue-content").append(htmlString);
-			
-		// }
-		// $('.tooltipped').tooltip('remove');
-		// $('.tooltipped').tooltip({delay: 50});
+		data:{"query":$("#query").val()},
 
-		// $(".remove-from-queue").click(function(event){
-		// 	removeFromQueue($(this).data("id"));
-		// });
+	    success: function(resp) {
+	    	console.log(resp)
+		
+			htmlString = "<h5>"+resp.query+"</h5>";
+			
+
+			htmlString +="<table class='striped highlight'><thead><tr>";
+
+			for(column in resp.columns)
+				htmlString +="<th>"+resp.columns[column]+"</th>";
+
+			htmlString+="</tr></thead>";
+
+			for(row in resp.data){
+				htmlString+="<tr>";
+				for(col in resp.data[row]){
+					htmlString +="<td>"+resp.data[row][col]+"</td>";
+				}
+				htmlString+="</tr>";
+			}
+
+			htmlString+="</table>";
+
+			$("#right-top").hide();
+			$("#right-top").html(htmlString).fadeIn('400', function() {
+			
+ 			Materialize.toast('Query returened '+resp.numrows+' rows.', 4000, 'green') // 'rounded' is the class I'm applying to the toast
+
+			});
 
 	}});
 
