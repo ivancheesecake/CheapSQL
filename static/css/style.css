@@ -7,9 +7,23 @@
  	margin-bottom: 0px;
  }
 
- .input-field{
- 	margin-top:0px;
- }
+input:focus {
+  border-bottom: 1px solid #1e88e5!important;
+  -webkit-box-shadow: 0 1px 0 0 #1e88e5!important;
+  -moz-box-shadow: 0 1px 0 0 #1e88e5!important;
+  box-shadow: 0 1px 0 0 #1e88e5!important;
+}
+
+.materialize-textarea:focus{
+  border-bottom: 1px solid #1e88e5!important;
+  -webkit-box-shadow: 0 1px 0 0 #1e88e5!important;
+  -moz-box-shadow: 0 1px 0 0 #1e88e5!important;
+  box-shadow: 0 1px 0 0 #1e88e5!important;
+}
+
+label {
+    color: #1e88e5!important;
+}
 
 
 /*
@@ -47,7 +61,7 @@
 
  #right-bottom{
 
- 	height: 28%;
+ 	height: 25%;
  }
 
  /* Query Pane Styles*/
