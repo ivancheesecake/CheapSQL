@@ -1,6 +1,6 @@
 
 #	------------------------------------------------------
-#python "D:\Djinn\Midgard\Geffen\Masters\CMSC 227\Project Code\SQL_parser_01.py"
+#python "D:\Djinn\Midgard\Geffen\Masters\CMSC 227\Project Code\CheapSQL-master\scripts\validatesql.py"
 #	------------------------------------------------------
 
 import shlex
@@ -194,6 +194,9 @@ def isValidTables(tables_string, selected_tables):
 	return False
 
 #	------------------------------------------------------
+
+#	INCLUDE EARLY TERMINATE ';'
+
 def isValidSchemaString(schema_string,target_schema):
 	print schema_string
 	
@@ -205,12 +208,14 @@ def isValidSchemaString(schema_string,target_schema):
 	isValid = False
 	state = 0
 	
-	lexer = shlex.shlex(schema_string, posix=True)
+	#lexer = shlex.shlex(schema_string, posix=True)
 	#lexer.whitespace += ','
-	lexer_list = list(lexer)
+	#lexer_list = list(lexer)
+	
+	lexer_list = shlex.split(columns_string)
 	
 	for i in range(0, len(lexer_list) ):
-	#print lexer_list[i]
+	
 		term = lexer_list[i].upper()
 		if state == 0:
 			result = next((i for i, v in enumerate(table_list) if v[0].upper() == term), -1)
@@ -282,9 +287,10 @@ def isValidColumns(columns_string, selected_tables, selected_columns):
 	isValid = False
 	state = 0
 	
-	lexer = shlex.shlex(columns_string, posix=True)
+	#lexer = shlex.shlex(columns_string, posix=True)
 	#lexer.whitespace += ','
-	lexer_list = list(lexer)
+	#lexer_list = list(lexer)
+	lexer_list = shlex.split(columns_string)
 	
 	for i in range(0, len(lexer_list) ):
 	#print lexer_list[i]
@@ -317,9 +323,13 @@ def isValidColumns(columns_string, selected_tables, selected_columns):
 		elif state == 3:
 			if lexer_list[i] == ",":
 				state = 0
+			else:
+				print "\n[ERROR] Expected ','"
+				return False
 		else:
 			print "\n[ERROR] Unknown state : " + str(state)
 			
+	print str(state) + "!!!"
 	if state == 3 :
 		return True
 	
