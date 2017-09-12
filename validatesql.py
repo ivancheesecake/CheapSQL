@@ -5,13 +5,15 @@
 
 import shlex
 import sys
+import re
 from pythonds.basic.stack import Stack
 from pythonds.trees.binaryTree import BinaryTree
 
 
 #	------------------------------------------------------
 #	Global variables
-_install_dir = "D:\\Djinn\\Midgard\\Geffen\\Masters\\CMSC 227\\Project Code\\"
+_install_dir = "D:\\Djinn\\Midgard\\Geffen\\Masters\\CMSC 227\\Project Code\\CheapSQL-master\\"
+_schema_ext = ".csf"
 
 #	------------------------------------------------------
 
@@ -39,68 +41,82 @@ def loadTables(loc):
 
 #	------------------------------------------------------
 
-def loadSchema(loc, withFlags):
-	return_list = list()
-	if withFlags:
-		if loc == "ALL_TABLES":
-			return_list.append(("STUDENT","STUDNO",False))
-			return_list.append(("STUDENT","STUDENTNAME",False))
-			return_list.append(("STUDENT","BIRTHDAY",False))
-			return_list.append(("STUDENT","DEGREE",False))
-			return_list.append(("STUDENT","MAJOR",False))
-			return_list.append(("STUDENT","UNITSEARNED",False))
-			return_list.append(("STUDENTHISTORY","STUDNO",False))
-			return_list.append(("STUDENTHISTORY","DESCRIPTION",False))
-			return_list.append(("STUDENTHISTORY","ACTION",False))
-			return_list.append(("STUDENTHISTORY","DATEFILED",False))
-			return_list.append(("STUDENTHISTORY","DATERESOLVED",False))
-			
-			
-		elif loc == "STUDENT":
-			return_list.append(("STUDENT","STUDNO",False))
-			return_list.append(("STUDENT","STUDENTNAME",False))
-			return_list.append(("STUDENT","BIRTHDAY",False))
-			return_list.append(("STUDENT","DEGREE",False))
-			return_list.append(("STUDENT","MAJOR",False))
-			return_list.append(("STUDENT","UNITSEARNED",False))
+def loadSchema(loc, withFlags, return_list):
+	
+	if loc == "ALL_TABLES":
+	
+		loadSchema("STUDENT",withFlags,return_list)
+		loadSchema("STUDENTHISTORY",withFlags,return_list)
+		loadSchema("COURSE",withFlags,return_list)
+		loadSchema("COURSEOFFERING",withFlags,return_list)
+		loadSchema("STUDCOURSE",withFlags,return_list)
 		
-		elif loc == "STUDENTHISTORY":
-			return_list.append(("STUDENTHISTORY","STUDNO",False))
-			return_list.append(("STUDENTHISTORY","DESCRIPTION",False))
-			return_list.append(("STUDENTHISTORY","ACTION",False))
-			return_list.append(("STUDENTHISTORY","DATEFILED",False))
-			return_list.append(("STUDENTHISTORY","DATERESOLVED",False))
-			
 	else:
-		if loc == "ALL_TABLES":
-			return_list.append(("STUDENT","STUDNO"))
-			return_list.append(("STUDENT","STUDENTNAME"))
-			return_list.append(("STUDENT","BIRTHDAY"))
-			return_list.append(("STUDENT","DEGREE"))
-			return_list.append(("STUDENT","MAJOR"))
-			return_list.append(("STUDENT","UNITSEARNED"))
-			return_list.append(("STUDENTHISTORY","STUDNO"))
-			return_list.append(("STUDENTHISTORY","DESCRIPTION"))
-			return_list.append(("STUDENTHISTORY","ACTION"))
-			return_list.append(("STUDENTHISTORY","DATEFILED"))
-			return_list.append(("STUDENTHISTORY","DATERESOLVED"))
-			
-		elif loc == "STUDENT":
-			return_list.append(("STUDENT","STUDNO"))
-			return_list.append(("STUDENT","STUDENTNAME"))
-			return_list.append(("STUDENT","BIRTHDAY"))
-			return_list.append(("STUDENT","DEGREE"))
-			return_list.append(("STUDENT","MAJOR"))
-			return_list.append(("STUDENT","UNITSEARNED"))
+		loc_file = loc + _schema_ext
+		#schema_file  = open(_install_dir + "scripts\\schema\\" + loc_file,"r")
+		#lexer_list = shlex.split(schema_file.read())
 		
-		elif loc == "STUDENTHISTORY":
-			return_list.append(("STUDENTHISTORY","STUDNO"))
-			return_list.append(("STUDENTHISTORY","DESCRIPTION"))
-			return_list.append(("STUDENTHISTORY","ACTION"))
-			return_list.append(("STUDENTHISTORY","DATEFILED"))
-			return_list.append(("STUDENTHISTORY","DATERESOLVED"))
+		#print "\nRECURSE: " + loc
+		
+		with open(_install_dir + "scripts\\schema\\" + loc_file) as schema_file:
+			file_lines = schema_file.readlines()
+		
+		#	Raw column information (one row)
+		for i in range(0, len(file_lines) ):	
+		
+			state = 0
+			col_name = ""
+			data_type = ""
+			length = 0	
+			mask = ""
+			isNullable = False
 			
-	return return_list
+			column_info = file_lines[i].upper()
+			#print "\n COLUMN_INFO : "
+			#print column_info
+			if column_info[0] != "#":
+			
+				column_info_list = shlex.split(column_info)
+			
+				#	Parse column information
+				for j in range(0, len(column_info_list) ):
+					
+					if state == 0:
+						col_name = column_info_list[j]
+						state = 1
+					elif state in [1,3,5,7]:
+						state += 1
+					elif state == 2:
+						data_type = column_info_list[j].upper()
+						state += 1
+					elif state == 4:
+						if column_info_list[j] == "*":
+							length = 0
+						else:
+							length = int(column_info_list[j])
+						state += 1
+					elif state == 6:
+						mask = column_info_list[j]
+						state += 1
+					elif state == 8:
+						if column_info_list[j].upper == "FALSE":
+							isNullable = False
+						elif column_info_list[j].upper == "TRUE":
+							isNullable = True
+						state += 1
+				if state != 9:
+					print "\n[ERROR] Corrupt schema file : " + _install_dir + "scripts\\schema\\" + loc_file
+					print "\n        Line : " + str(i)
+					return False
+					
+				if withFlags:
+					return_list.append((loc,col_name,data_type,length,mask,isNullable,False))
+				else:
+					return_list.append((loc,col_name,data_type,length,mask,isNullable))
+		
+		#print "\n RETURN LIST : "
+		#print return_list
+		#print "---------------------------------"
 
 #	------------------------------------------------------
 	
@@ -108,6 +124,21 @@ def isValidAlias(candidate):
 	#check for special characters and shit
 	return True
 
+#	------------------------------------------------------
+
+def isValidDate(date_string,mask_string):
+	
+	re_mask_string = ""
+	if mask_string == "YYYY-MM-DD":
+		re_mask_string = "[0-9]{4}-(0[1-9]|1[1-2])-(0[1-9]|[1-2][0-9]|[3][0-1])"
+	
+	mask_checker = re.compile(re_mask_string)
+	if mask_checker.match(str(date_string)) is None:
+		print "\n[ERROR - isValidDate] Invalid date"
+		return False
+	else:
+		return True
+		
 #	------------------------------------------------------
 
 def isValidTerm(someTerm):
@@ -195,10 +226,7 @@ def isValidTables(tables_string, selected_tables):
 
 #	------------------------------------------------------
 
-#	INCLUDE EARLY TERMINATE ';'
-
-def isValidSchemaString(schema_string,target_schema):
-	print schema_string
+def isValidSchemaString(schema_string,target_columns):
 	
 	#load tables
 	table_list = loadTables("ALL_TABLES")
@@ -212,7 +240,8 @@ def isValidSchemaString(schema_string,target_schema):
 	#lexer.whitespace += ','
 	#lexer_list = list(lexer)
 	
-	lexer_list = shlex.split(columns_string)
+	lexer_list = shlex.split(schema_string)
+	ctr = 0
 	
 	for i in range(0, len(lexer_list) ):
 	
@@ -220,7 +249,8 @@ def isValidSchemaString(schema_string,target_schema):
 		if state == 0:
 			result = next((i for i, v in enumerate(table_list) if v[0].upper() == term), -1)
 			if result != -1 :
-				target_schema = loadSchema(term, True)
+				target_schema = list()
+				loadSchema(term, True, target_schema)
 				target_table = term
 				state = 1
 			else:
@@ -241,12 +271,22 @@ def isValidSchemaString(schema_string,target_schema):
 					print "\n[ERROR] Duplicate column : " + term
 					return False
 				else:
-				
-				
+					#flag the column as selected
+					#print "\nRESULT : " + str(result)
 					temp_t0 = target_schema[result][0]
-					temp_t1 = target_schema[result][0]
-					temp_t2 = True
-					target_schema[result] = (temp_t0,temp_t1,temp_t2)
+					temp_t1 = target_schema[result][1]
+					temp_t2 = target_schema[result][2]
+					temp_t3 = target_schema[result][3]
+					temp_t4 = target_schema[result][4]
+					temp_t5 = True
+					target_schema[result] = (temp_t0,temp_t1,temp_t2,temp_t3,temp_t4,temp_t5)
+					#print "\n -----"
+					#print target_schema
+					#add the column into target_columns
+					
+					target_columns.append((temp_t0,temp_t1,temp_t2,temp_t3,temp_t4,ctr))
+					
+					ctr += 1
 					
 					state = 3
 			else:
@@ -272,15 +312,103 @@ def isValidSchemaString(schema_string,target_schema):
 	return isValid
 	
 #	------------------------------------------------------
-def isValidValuesString(values_string,target_schema):
 
-	return False
+def isValidValuesString(values_string,target_columns):
+	
+	lexer_list = shlex.split(values_string)
+	
+	state = 0
+	column_count = 0
+	
+	for i in range(0, len(lexer_list) ):
+	
+		if state == 0:
+			if lexer_list[i] == "(":
+				state = 1
+			
+		elif state == 1:
+			term = lexer_list[i]
+			#check with the datatype
+			current_column = target_columns[column_count]
+			#	0	Table name
+			#	1	Column name
+			#	2	Data type
+			#	3	Length
+			#	4	Mask
+			#	5	IsNullable
+			
+			
+			#----STRING
+			if current_column[2] == "STRING":
+				#	Length check
+				if len(term) > current_column[3]:
+					print "\n[ERROR] Length exceeded " + str(current_column[3])
+					return False
+				elif len(term) > 0:
+					
+					if current_column[4] != "*":
+						mask_checker = re.compile(current_column[4])
+						if mask_checker.match(str(term)) is None:
+							print "\n[ERROR] Invalid value; did not match input mask : " + str(current_column[4]) + " : " + str(term)
+							return False
+						#VALID
+					#else:
+						# *
+				else:
+					if not current_column[5]:
+						print "\n[ERROR] Column " + current_column[0] + "is not nullable"
+						return False
+					#VALID
+					
+			#----DATE
+			elif current_column[2] == "DATE":
+				#	Length check
+				if len(term) > current_column[3]:
+					print "\n[ERROR] Length exceeded " + str(current_column[3])
+					return False
+				elif len(term) > 0:
+					if current_column[4] != "*":
+						mask_string = current_column[4]
+						current_column[4]
+						if not isValidDate(term,mask_string):
+							print "\n[ERROR] Unsupported date format: " + str(term)
+							return False
+						#VALID
+					#else:
+						# *
+				else:
+					if not current_column[5]:
+						print "\n[ERROR] Column " + current_column[0] + "is not nullable"
+						return False
+					#VALID
+			#----INT
+			elif current_column[2] == "INTEGER":
+				if not term.isdigit():
+					print "\n[ERROR] Type mismatch. Expected " + current_column[2]
+					return False
+				
+			column_count += 1
+			state = 2
+		elif state == 2:
+			if lexer_list[i] == ",":
+				state = 1 
+			elif lexer_list[i] == ")":
+				state = 3
+	
+	if state == 3:
+		return True
+	else:
+		print "\n[ERROR] Expected ')'"
+		return False
+	
 #	------------------------------------------------------
 
 def isValidColumns(columns_string, selected_tables, selected_columns):
 
 	#load tables
-	column_list = loadSchema("ALL_TABLES", False)
+	column_list = list()
+	loadSchema("ALL_TABLES", False, column_list)
+	
 	
 	#----------------------------------------------------
 	
@@ -329,7 +457,6 @@ def isValidColumns(columns_string, selected_tables, selected_columns):
 		else:
 			print "\n[ERROR] Unknown state : " + str(state)
 			
-	print str(state) + "!!!"
 	if state == 3 :
 		return True
 	
@@ -340,7 +467,8 @@ def isValidColumns(columns_string, selected_tables, selected_columns):
 def isValidConditions(conditions_string, selected_tables):
 
 	#load tables
-	column_list = loadSchema("ALL_TABLES", False)
+	column_list = list()
+	loadSchema("ALL_TABLES", False, column_list)
 	
 	#----------------------------------------------------
 	
@@ -553,9 +681,9 @@ def isValidSQL(input_sql):
 	
 	if checkType == "INSERT":
 		#Check INSERT
-		target_schema = list()
-		if isValidSchemaString(schema_string,target_schema):
-			if isValidValuesString(values_string,target_schema):
+		target_columns = list()
+		if isValidSchemaString(schema_string,target_columns):
+			if isValidValuesString(values_string,target_columns):
 				return True
 			else:
 				print "\n[ERROR] isValidValuesString failed"
@@ -600,7 +728,7 @@ def isValidSQL(input_sql):
 
 
 
-input_sql_file  = open(_install_dir + "input.sql","r")
+input_sql_file  = open(_install_dir + "test_input.sql","r")
 input_sql = input_sql_file.read()
 
 if isValidSQL(input_sql):

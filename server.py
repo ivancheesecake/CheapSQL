@@ -1,8 +1,14 @@
 
 #	For DJ: python "D:\Djinn\Midgard\Geffen\Masters\CMSC 227\Project Code\CheapSQL-master\server.py"
 
+
+
 from flask import Flask,render_template,url_for,redirect,jsonify,request
-from scripts import validatesql as parser
+
+import sys  
+#	Change the long DIR to your local setting
+sys.path.append('D:/Djinn/Midgard/Geffen/Masters/CMSC 227/Project Code/CheapSQL-master/scripts')
+from validatesql import isValidSQL as parser
 
 app = Flask(__name__)
 

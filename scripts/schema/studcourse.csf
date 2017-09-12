@@ -1,0 +1,5 @@
+#Column name	,	Data type	,	length	,	Mask						,	IsNullable
+STUDNO			,	STRING		,	10		,	"[0-9]{4}-[0-9]{5}"			,	FALSE
+CNO				,	STRING		,	50		,	*							,	FALSE
+SEMESTER		,	ENUM		,	*		,	SEMESTER					,	TRUE
+ACADYEAR		,	STRING		,	50		,	*							,	FALSE
