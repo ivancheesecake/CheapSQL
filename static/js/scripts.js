@@ -16,32 +16,44 @@ $("#run").click(function(){
 	    success: function(resp) {
 	    	console.log(resp)
 		
-			htmlString = "<h5>"+resp.query+"</h5>";
-			
+			htmlString = "";
 
-			htmlString +="<table class='striped highlight'><thead><tr>";
+			if(resp.valid_query=="True"){
 
-			for(column in resp.columns)
-				htmlString +="<th>"+resp.columns[column]+"</th>";
+				htmlString +="<table class='striped highlight'><thead><tr>";
 
-			htmlString+="</tr></thead>";
+				for(column in resp.columns)
+					htmlString +="<th>"+resp.columns[column]+"</th>";
 
-			for(row in resp.data){
-				htmlString+="<tr>";
-				for(col in resp.data[row]){
-					htmlString +="<td>"+resp.data[row][col]+"</td>";
+				htmlString+="</tr></thead>";
+
+				for(row in resp.data){
+					htmlString+="<tr>";
+					for(col in resp.data[row]){
+						htmlString +="<td>"+resp.data[row][col]+"</td>";
+					}
+					htmlString+="</tr>";
 				}
-				htmlString+="</tr>";
+
+				htmlString+="</table>";
+
+
+ 				Materialize.toast('SQL is Valid', 4000, 'green');
+ 				Materialize.toast('Query returned '+resp.numrows+' rows.', 4000, 'green') // 'rounded' is the class I'm applying to the toast
+			}
+			else{
+				htmlString = resp.error
+ 				Materialize.toast('SQL is Invalid', 4000, 'red');  
+			
 			}
 
-			htmlString+="</table>";
 
 			$("#right-top").hide();
 			$("#right-top").html(htmlString).fadeIn('400', function() {
 			
- 			Materialize.toast('Query returened '+resp.numrows+' rows.', 4000, 'green') // 'rounded' is the class I'm applying to the toast
-
 			});
+
+			
 
 	}});
 
