@@ -1,10 +1,5 @@
-SELECT
+INSERT  INTO
+student(birthday,studNO,STUDENTNAME)
 
-*
 
-FROM
-student as s1, studenthistory
-
-WHERE
-student.studno = studenthistory.studno
-;
+VALUES ('1985-04-20',"2001-73310",'DJ Sarroza')

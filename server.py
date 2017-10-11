@@ -5,10 +5,13 @@
 
 from flask import Flask,render_template,url_for,redirect,jsonify,request
 
-import sys  
+import sys
+import shlex
+
 #	Change the long DIR to your local setting
 # sys.path.append('D:/Djinn/Midgard/Geffen/Masters/CMSC 227/Project Code/CheapSQL-master/scripts')
-import SQLValidator as parser
+#import SQLValidator as parser
+import validatesql as parser
 
 app = Flask(__name__)
 
@@ -26,12 +29,18 @@ def query():
 
 	query = request.form.get("query")
 	print query
-
+	
+	#lexer_list = shlex.split(query)
+	
+	#print "SPLIT :: "
+	#print lexer_list
 	# Parse the SQL string
 	isValidQuery,error = parser.isValidSQL(query)
 	
 	# If valid SQL, proceed with the query
+	
 	if isValidQuery:
+	#if True:
 
 		resp["query"] = request.form.get("query")
 
