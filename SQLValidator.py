@@ -1,6 +1,7 @@
 
 #	------------------------------------------------------
-#python "D:\Djinn\Midgard\Geffen\Masters\CMSC 227\Project Code\CheapSQL-master\scripts\validatesql.py"
+#python "D:\Djinn\Midgard\Geffen\Masters\CMSC 227\Project Code\CheapSQL-master\validatesql.py"
+#python "D:\Djinn\Midgard\Geffen\Masters\CMSC 227\Project Code\CheapSQL-master\validatesql_backup.py"
 #	------------------------------------------------------
 
 import shlex
@@ -8,20 +9,19 @@ import sys
 import re
 from pythonds.basic.stack import Stack
 from pythonds.trees.binaryTree import BinaryTree
-
+import btree
 
 #	------------------------------------------------------
 #	Global variables
+# _install_dir = "\\"
 _install_dir = "D:\\My Documents\\AY 2017-2018 1S\\CMSC 227\\CheapSQL\\"
+# _install_dir = "D:\\Djinn\\Midgard\\Geffen\\Masters\\CMSC 227\\Project Code\\CheapSQL-master\\"
 _schema_ext = ".csf"
-error = ""
 
 #	------------------------------------------------------
 
 def loadTables(loc):
-
 	global error
-
 	return_list = list()
 	if loc == "ALL_TABLES":
 		
@@ -46,31 +46,38 @@ def loadTables(loc):
 #	------------------------------------------------------
 
 def loadSchema(loc, withFlags, return_list):
-
 	global error
-
-	
+	read_flag = False
 	if loc == "ALL_TABLES":
-	
-		loadSchema("STUDENT",withFlags,return_list)
-		loadSchema("STUDENTHISTORY",withFlags,return_list)
-		loadSchema("COURSE",withFlags,return_list)
-		loadSchema("COURSEOFFERING",withFlags,return_list)
-		loadSchema("STUDCOURSE",withFlags,return_list)
 		
+		if not loadSchema("STUDENT",withFlags,return_list):
+			error +=   "\n[ERROR loadSchema] Loading 'STUDENT' schema failed"
+			return False
+		if not loadSchema("STUDENTHISTORY",withFlags,return_list):
+			error +=   "\n[ERROR loadSchema] Loading 'STUDENT' schema failed"
+			return False		
+		if not loadSchema("COURSE",withFlags,return_list):
+			error +=   "\n[ERROR loadSchema] Loading 'STUDENT' schema failed"
+			return False
+		if not loadSchema("COURSEOFFERING",withFlags,return_list):
+			error +=   "\n[ERROR loadSchema] Loading 'STUDENT' schema failed"
+			return False
+		if not loadSchema("STUDCOURSE",withFlags,return_list):
+			error +=   "\n[ERROR loadSchema] Loading 'STUDENT' schema failed"
+			return False		
 	else:
 		loc_file = loc + _schema_ext
 		#schema_file  = open(_install_dir + "scripts\\schema\\" + loc_file,"r")
 		#lexer_list = shlex.split(schema_file.read())
 		
-		#error +=  "\nRECURSE: " + loc
+		#error +=   "\nRECURSE: " + loc
 		
 		with open(_install_dir + "scripts\\schema\\" + loc_file) as schema_file:
 			file_lines = schema_file.readlines()
 		
 		#	Raw column information (one row)
 		for i in range(0, len(file_lines) ):	
-		
+			read_flag = True
 			state = 0
 			col_name = ""
 			data_type = ""
@@ -79,8 +86,8 @@ def loadSchema(loc, withFlags, return_list):
 			isNullable = False
 			
 			column_info = file_lines[i].upper()
-			#error +=  "\n COLUMN_INFO : "
-			#error +=  column_info
+			#error +=   "\n COLUMN_INFO : "
+			#error +=   column_info
 			if column_info[0] != "#":
 			
 				column_info_list = shlex.split(column_info)
@@ -112,38 +119,45 @@ def loadSchema(loc, withFlags, return_list):
 							isNullable = True
 						state += 1
 				if state != 9:
-					error +=  "\n[ERROR] Corrupt schema file : " + _install_dir + "scripts\\schema\\" + loc_file
-					error +=  "\n        Line : " + str(i)
+					error +=   "\n[ERROR] Corrupt schema file : " + _install_dir + "scripts\\schema\\" + loc_file
+					error +=   "\n        Line : " + str(i)
 					return False
 					
 				if withFlags:
 					return_list.append((loc,col_name,data_type,length,mask,isNullable,False))
 				else:
 					return_list.append((loc,col_name,data_type,length,mask,isNullable))
-		
-		#error +=  "\n RETURN LIST : "
-		#error +=  return_list
-		#error +=  "---------------------------------"
+		if read_flag == False:
+			error +=   "\n[ERROR loadSchema] Possible corrupt schema file : " + _install_dir + "scripts\\schema\\" + loc_file
+			return False
+		else:
+			return True
+		#error +=   "\n RETURN LIST : "
+		#error +=   return_list
+		#error +=   "---------------------------------"
 
 #	------------------------------------------------------
 	
-def isValidAlias(candidate):
+def isValidAlias(candidate, selected_tables):
 	#check for special characters and shit
+	global error
+	for table in selected_tables:
+		if candidate.upper() == table[0].upper():
+			error +=   "\n[ERROR isValidAlias] Duplicate alias : " + candidate
+			return False
 	return True
 
 #	------------------------------------------------------
 
 def isValidDate(date_string,mask_string):
-
 	global error
-	
 	re_mask_string = ""
 	if mask_string == "YYYY-MM-DD":
 		re_mask_string = "[0-9]{4}-(0[1-9]|1[1-2])-(0[1-9]|[1-2][0-9]|[3][0-1])"
 	
 	mask_checker = re.compile(re_mask_string)
 	if mask_checker.match(str(date_string)) is None:
-		error +=  "\n[ERROR - isValidDate] Invalid date"
+		error +=   "\n[ERROR - isValidDate] Invalid date"
 		return False
 	else:
 		return True
@@ -151,19 +165,15 @@ def isValidDate(date_string,mask_string):
 #	------------------------------------------------------
 
 def isValidTerm(someTerm):
-
+	global error
 	return True
 
 #	------------------------------------------------------
-
+#	SELECT/DELETE Checking
 def isValidTables(tables_string, selected_tables):
-
 	global error
-
-
 	#load tables
 	table_list = loadTables("ALL_TABLES")
-	
 	
 	#----------------------------------------------------
 
@@ -175,9 +185,16 @@ def isValidTables(tables_string, selected_tables):
 	lexer_list = list(lexer)
 	
 	for i in range(0, len(lexer_list) ):
-	#error +=  lexer_list[i]
-	
+	#error +=   lexer_list[i]
+		
+		#	States:
+		#	0	Initial (checks)
+		#	1	AS
+		#	2	Check for alias validity
+		#	3	Check for comma ( -> 0)
+		
 		if state == 0:
+			
 			table_alias = lexer_list[i].upper()
 			result = next((i for i, v in enumerate(table_list) if v[0].upper() == table_alias), -1)
 			
@@ -185,7 +202,7 @@ def isValidTables(tables_string, selected_tables):
 				selected_tables.append(table_list[result])
 				state = 1
 			else:
-				error +=  "\n[ERROR] Expected a valid target table. Read the goddamn schema man, what the hell is " + str(lexer_list[i].upper()) + "?"
+				error +=   "\n[ERROR] Expected a valid target table. Read the goddamn schema man, what the hell is " + str(lexer_list[i].upper()) + "?"
 				return False
 		
 		#Check for comma or AS
@@ -196,14 +213,14 @@ def isValidTables(tables_string, selected_tables):
 			elif lexer_list[i].upper() == "AS":
 				state = 2
 			else:
-				error +=  "\n[ERROR] Expected ',' or AS keyword, but instead we got this shit : " + str(lexer_list[i].upper())
+				error +=   "\n[ERROR] Expected ',' or AS keyword, but instead we got this shit : " + str(lexer_list[i].upper())
 				return False
 		
-		#Check for the actual table
+		#Check for alias validity
 		elif state == 2:
 			candidate_alias = lexer_list[i].upper()
 			#check if alias is an existing alias or table name
-			if isValidAlias(candidate_alias) :
+			if isValidAlias(candidate_alias, selected_tables) :
 			
 				temp_tuple = selected_tables[-1]
 				
@@ -212,23 +229,20 @@ def isValidTables(tables_string, selected_tables):
 				temp_t2 = temp_tuple[2]
 
 				temp_tuple = (temp_t0,temp_t1,temp_t2)
-				
-				
 
-				
 				selected_tables[-1] = temp_tuple
 				
 				state = 3
 			else :
-				error +=  "\n[ERROR] Invalid alias : " + candidate_alias
+				return False
 		elif state == 3:
 			if lexer_list[i] == ",":
 				state = 0
 			else :
-				error +=  "\n[ERROR] Expected ','"
+				error +=   "\n[ERROR] Expected ','"
 				return False
 		else :
-			error +=  "\n[ERROR] Unknown state : " + str(state)
+			error +=   "\n[ERROR] Unknown state : " + str(state)
 			return False
 	
 	if (state == 3) or (state == 1) :
@@ -237,12 +251,183 @@ def isValidTables(tables_string, selected_tables):
 	return False
 
 #	------------------------------------------------------
-
-def isValidSchemaString(schema_string,target_columns):
-
+#	SELECT/DELETE Checking
+def isValidColumns(columns_string, selected_tables, selected_columns):
 	global error
-
+	#load tables
+	column_list = list()
 	
+	#	(alias, table, schema_loc)
+	
+	for t1 in selected_tables:
+		loadSchema(t1[1], False, column_list)
+	
+	#----------------------------------------------------
+	
+	isValid = False
+	state = 0
+	
+	lexer_list = shlex.split(columns_string)
+	
+	#	State
+	#	0	Initial, check for alias OR *
+	#	1	Check for .
+	#	2	Check for column
+	#	3	Check for ,
+	#	4	Final state if * 
+	
+	for i in range(0, len(lexer_list) ):
+	#error +=   lexer_list[i]
+	
+		if state == 0:
+			if lexer_list[i] == "*":
+				state = 4
+			else:
+				table_alias = lexer_list[i].upper()
+				result = next((i for i, v in enumerate(selected_tables) if v[0].upper() == table_alias), -1)
+				
+				if result != -1 :
+					source_table_index = result
+					state = 1
+				else:
+					error +=   "\n[ERROR] Expected a valid target table name/alias."
+					return False
+		elif state == 1:
+			if lexer_list[i] == ".":
+				state = 2
+			else:
+				error +=   "\n[ERROR] Expected '.' ... it's not that hard man."
+				return False
+		elif state == 2:
+			column_name = lexer_list[i].upper()
+			result = next((i for i, v in enumerate(column_list) if ((v[0].upper() == selected_tables[source_table_index][1]) and (v[1].upper() == column_name))), -1)
+			if result != -1 :
+				selected_columns.append(column_list[result])
+				state = 3
+			else:
+				error +=   "\n[ERROR] Expected a valid column name : " + str(column_name)
+				return False
+		elif state == 3:
+			if lexer_list[i] == ",":
+				state = 0
+			else:
+				error +=   "\n[ERROR] Expected ','"
+				return False
+		elif state == 4:
+			error +=   "\n[ERROR isValidColumns] Expected keyword: FROM"
+			return False
+		else:
+			error +=   "\n[ERROR] Unknown state : " + str(state)
+			
+	if state in [3,4] :
+		return True
+	else:
+		return False
+
+#	------------------------------------------------------
+#	SELECT/DELETE Checking
+def isValidConditions(conditions_string, selected_tables):
+	global error
+	#load tables
+	column_list = list()
+	loadSchema("ALL_TABLES", False, column_list)
+	
+	#----------------------------------------------------
+	global error
+	
+	isValid = False
+	state = 0
+	pStack = Stack()
+	eTree = BinaryTree("!")
+	pStack.push(eTree)
+	currentTree = eTree
+	ctr = 0
+	operatorList = ["=", "AND", "OR"]
+	
+	#lexer = shlex.shlex(conditions_string, posix=True)
+	#lexer.whitespace += ';'
+	#lexer_list = list(lexer)
+	
+	lexer_list = shlex.split(conditions_string)
+	
+	for i in range(0, len(lexer_list) ):
+		ctr += 1
+		#-----------
+		
+		term = lexer_list[i].upper()
+		
+		if term == "(":
+			currentTree.insertLeft("")
+			pStack.push(currentTree)
+			currentTree = currentTree.getLeftChild()
+		elif (term not in operatorList) and (term not in ["(",")",";"]):
+		
+			# Check if term is a valid column or value
+			if state == 0:
+				result = next((i for i, v in enumerate(selected_tables) if v[0].upper() == term), -1)
+				if result != -1 :
+					source_table_index = result
+					state = 1
+				else:
+					if isValidTerm(term) :
+						rootVal = term
+						state = 99
+					else:
+						error +=   "\n[ERROR] Expected a valid number or column name"
+						return False
+			elif state == 1:
+				if term == ".":
+					state = 2
+				else:
+					error +=   "\n[ERROR] Expected '.'"
+					return False
+			elif state == 2:
+				result = next((i for i, v in enumerate(column_list) if ((v[0].upper() == selected_tables[source_table_index][1]) and (v[1].upper() == term))), -1)
+				
+				if result != -1 :
+					rootVal = column_list[result][0] + "." + column_list[result][1]
+					state = 99
+				else:
+					error +=   "\n[ERROR] Expected a valid column name : " + str(term)
+					return False
+			if state == 99:
+				if not pStack.isEmpty():
+					state = 0
+					currentTree.setRootVal(rootVal)
+					parent = pStack.pop()
+					currentTree = parent
+				else:
+					error +=   "\n[ERROR] Unbalanced operations"
+					return False
+			
+		elif term in operatorList:
+			currentTree.setRootVal(term)
+			currentTree.insertRight("")
+			pStack.push(currentTree)
+			currentTree = currentTree.getRightChild()
+		elif term == ")":
+			if not pStack.isEmpty():
+				currentTree = pStack.pop()
+			else:
+				error +=   "\n[ERROR] Unbalanced operations"
+				return False
+		#elif term == ";":
+		#	i = len(lexer_list) + 1
+		else:
+			raise ValueError
+	
+	if ctr > 0:
+		if not pStack.isEmpty():
+			error += "\n[ERROR] Unbalanced grouping"
+			return False
+		else:
+			return True
+	else:
+		return True
+#	------------------------------------------------------
+#	INSERT Checking
+def isValidSchemaString(schema_string,target_columns):
+	global error
 	#load tables
 	table_list = loadTables("ALL_TABLES")
 	#target_schema = loadSchema("ALL_TABLES", True)
@@ -269,25 +454,25 @@ def isValidSchemaString(schema_string,target_columns):
 				target_table = term
 				state = 1
 			else:
-				error +=  "\n[ERROR] Invalid table name : " + term
+				error +=   "\n[ERROR] Invalid table name : " + term
 				return False
 		#begin parenthesis
 		elif state == 1:
 			if term == "(":
 				state = 2
 			else:
-				error +=  "\n[ERROR] Expected '('"
+				error +=   "\n[ERROR] Expected '('"
 				return False
 		#column name
 		elif state == 2:
 			result = next((i for i, v in enumerate(target_schema) if (v[0].upper() == target_table) and (v[1].upper() == term)), -1)
 			if result != -1 :
 				if target_schema[result][2] == True:
-					error +=  "\n[ERROR] Duplicate column : " + term
+					error +=   "\n[ERROR] Duplicate column : " + term
 					return False
 				else:
 					#flag the column as selected
-					#error +=  "\nRESULT : " + str(result)
+					#error +=   "\nRESULT : " + str(result)
 					temp_t0 = target_schema[result][0]
 					temp_t1 = target_schema[result][1]
 					temp_t2 = target_schema[result][2]
@@ -295,8 +480,8 @@ def isValidSchemaString(schema_string,target_columns):
 					temp_t4 = target_schema[result][4]
 					temp_t5 = True
 					target_schema[result] = (temp_t0,temp_t1,temp_t2,temp_t3,temp_t4,temp_t5)
-					#error +=  "\n -----"
-					#error +=  target_schema
+					#error +=   "\n -----"
+					#error +=   target_schema
 					#add the column into target_columns
 					
 					target_columns.append((temp_t0,temp_t1,temp_t2,temp_t3,temp_t4,ctr))
@@ -305,7 +490,7 @@ def isValidSchemaString(schema_string,target_columns):
 					
 					state = 3
 			else:
-				error +=  "\n[ERROR] Invalid column : " + term
+				error +=   "\n[ERROR] Invalid column : " + term
 				return False
 		#comma
 		#end parenthesis
@@ -315,7 +500,7 @@ def isValidSchemaString(schema_string,target_columns):
 			elif term == ")":
 				isValid = True
 			else:
-				error +=  "\n[ERROR] Expected ')'"
+				error +=   "\n[ERROR] Expected ')'"
 				return False
 
 		
@@ -327,11 +512,9 @@ def isValidSchemaString(schema_string,target_columns):
 	return isValid
 	
 #	------------------------------------------------------
-
+#	INSERT Checking
 def isValidValuesString(values_string,target_columns):
-
 	global error
-	
 	lexer_list = shlex.split(values_string)
 	
 	state = 0
@@ -354,26 +537,25 @@ def isValidValuesString(values_string,target_columns):
 			#	4	Mask
 			#	5	IsNullable
 			
-			
 			#----STRING
 			if current_column[2] == "STRING":
 				#	Length check
 				if len(term) > current_column[3]:
-					error +=  "\n[ERROR] Length exceeded " + str(current_column[3])
+					error +=   "\n[ERROR] Length exceeded " + str(current_column[3])
 					return False
 				elif len(term) > 0:
 					
 					if current_column[4] != "*":
 						mask_checker = re.compile(current_column[4])
 						if mask_checker.match(str(term)) is None:
-							error +=  "\n[ERROR] Invalid value; did not match input mask : " + str(current_column[4]) + " : " + str(term)
+							error +=   "\n[ERROR] Invalid value; did not match input mask : " + str(current_column[4]) + " : " + str(term)
 							return False
 						#VALID
 					#else:
 						# *
 				else:
 					if not current_column[5]:
-						error +=  "\n[ERROR] Column " + current_column[0] + "is not nullable"
+						error +=   "\n[ERROR] Column " + current_column[0] + "is not nullable"
 						return False
 					#VALID
 					
@@ -381,27 +563,27 @@ def isValidValuesString(values_string,target_columns):
 			elif current_column[2] == "DATE":
 				#	Length check
 				if len(term) > current_column[3]:
-					error +=  "\n[ERROR] Length exceeded " + str(current_column[3])
+					error +=   "\n[ERROR] Length exceeded " + str(current_column[3])
 					return False
 				elif len(term) > 0:
 					if current_column[4] != "*":
 						mask_string = current_column[4]
 						current_column[4]
 						if not isValidDate(term,mask_string):
-							error +=  "\n[ERROR] Unsupported date format: " + str(term)
+							error +=   "\n[ERROR] Unsupported date format: " + str(term)
 							return False
 						#VALID
 					#else:
 						# *
 				else:
 					if not current_column[5]:
-						error +=  "\n[ERROR] Column " + current_column[0] + "is not nullable"
+						error +=   "\n[ERROR] Column " + current_column[0] + "is not nullable"
 						return False
 					#VALID
 			#----INT
 			elif current_column[2] == "INTEGER":
 				if not term.isdigit():
-					error +=  "\n[ERROR] Type mismatch. Expected " + current_column[2]
+					error +=   "\n[ERROR] Type mismatch. Expected " + current_column[2]
 					return False
 				
 			column_count += 1
@@ -415,172 +597,11 @@ def isValidValuesString(values_string,target_columns):
 	if state == 3:
 		return True
 	else:
-		error +=  "\n[ERROR] Expected ')'"
+		error +=   "\n[ERROR] Expected ')'"
 		return False
-	
-#	------------------------------------------------------
-
-def isValidColumns(columns_string, selected_tables, selected_columns):
-
-
-	global error
-
-	#load tables
-	column_list = list()
-	loadSchema("ALL_TABLES", False, column_list)
-	
-	
-	#----------------------------------------------------
-	
-	isValid = False
-	state = 0
-	
-	#lexer = shlex.shlex(columns_string, posix=True)
-	#lexer.whitespace += ','
-	#lexer_list = list(lexer)
-	lexer_list = shlex.split(columns_string)
-	
-	for i in range(0, len(lexer_list) ):
-	#error +=  lexer_list[i]
-	
-		if state == 0:
-			table_alias = lexer_list[i].upper()
-			result = next((i for i, v in enumerate(selected_tables) if v[0].upper() == table_alias), -1)
-			
-			if result != -1 :
-				source_table_index = result
-				state = 1
-			else:
-				error +=  "\n[ERROR] Expected a valid target table name/alias."
-				return False
-		elif state == 1:
-			if lexer_list[i] == ".":
-				state = 2
-			else:
-				error +=  "\n[ERROR] Expected '.' ... it's not that hard man."
-				return False
-		elif state == 2:
-			column_name = lexer_list[i].upper()
-			result = next((i for i, v in enumerate(column_list) if ((v[0].upper() == selected_tables[source_table_index][1]) and (v[1].upper() == column_name))), -1)
-			if result != -1 :
-				selected_columns.append(column_list[result])
-				state = 3
-			else:
-				error +=  "\n[ERROR] Expected a valid column name : " + str(column_name)
-				return False
-		elif state == 3:
-			if lexer_list[i] == ",":
-				state = 0
-			else:
-				error +=  "\n[ERROR] Expected ','"
-				return False
-		else:
-			error +=  "\n[ERROR] Unknown state : " + str(state)
-			
-	if state == 3 :
-		return True
-	
-	return False
 
 #	------------------------------------------------------
-
-def isValidConditions(conditions_string, selected_tables):
-
-	global error
-
-	#load tables
-	column_list = list()
-	loadSchema("ALL_TABLES", False, column_list)
-	
-	#----------------------------------------------------
-	
-	isValid = False
-	state = 0
-	pStack = Stack()
-	eTree = BinaryTree("!")
-	pStack.push(eTree)
-	currentTree = eTree
-	
-	operatorList = ["=", "AND", "OR"]
-	
-	#lexer = shlex.shlex(conditions_string, posix=True)
-	#lexer.whitespace += ';'
-	#lexer_list = list(lexer)
-	
-	lexer_list = shlex.split(conditions_string)
-	
-	for i in range(0, len(lexer_list) ):
-	
-		#-----------
-		
-		term = lexer_list[i].upper()
-		
-		if term == "(":
-			currentTree.insertLeft("")
-			pStack.push(currentTree)
-			currentTree = currentTree.getLeftChild()
-		elif (term not in operatorList) and (term not in ["(",")",";"]):
-		
-			# Check if term is a valid column or value
-			if state == 0:
-				result = next((i for i, v in enumerate(selected_tables) if v[0].upper() == term), -1)
-				if result != -1 :
-					source_table_index = result
-					state = 1
-				else:
-					if isValidTerm(term) :
-						rootVal = term
-						state = 99
-					else:
-						error +=  "\n[ERROR] Expected a valid number or column name"
-						return False
-			elif state == 1:
-				if term == ".":
-					state = 2
-				else:
-					error +=  "\n[ERROR] Expected '.'"
-					return False
-			elif state == 2:
-				result = next((i for i, v in enumerate(column_list) if ((v[0].upper() == selected_tables[source_table_index][1]) and (v[1].upper() == term))), -1)
-				
-				if result != -1 :
-					rootVal = column_list[result][0] + "." + column_list[result][1]
-					state = 99
-				else:
-					error +=  "\n[ERROR] Expected a valid column name : " + str(column_name)
-					return False
-			if state == 99:
-				if not pStack.isEmpty():
-					state = 0
-					currentTree.setRootVal(rootVal)
-					parent = pStack.pop()
-					currentTree = parent
-				else:
-					error +=  "\n[ERROR] Unbalanced operations"
-					return False
-			
-		elif term in operatorList:
-			currentTree.setRootVal(term)
-			currentTree.insertRight("")
-			pStack.push(currentTree)
-			currentTree = currentTree.getRightChild()
-		elif term == ")":
-			if not pStack.isEmpty():
-				currentTree = pStack.pop()
-			else:
-				error +=  "\n[ERROR] Unbalanced operations"
-				return False
-		elif term == ";":
-			i = len(lexer_list) + 1
-		else:
-			raise ValueError
-	if not pStack.isEmpty():
-		error +=  "\n[ERROR] Unbalanced grouping"
-		return False
-	return True
-
-#	------------------------------------------------------
-
+#	QUERY Checking
 def isValidSQL(input_sql):
 
 	global error
@@ -588,28 +609,34 @@ def isValidSQL(input_sql):
 
 	isValid = False
 	state = 0
+	warningFlag = 0
 	columns_string = ""
 	tables_string = ""
 	conditions_string = ""
 	schema_string = ""
 	values_string = ""
 	skipColumnCheck = False
+	skipConditionsCheck = False
 	
 	lexer = shlex.shlex(input_sql, posix=True)
 	#lexer.whitespace += ','
 	lexer_list = list(lexer)
 	
+	#lexer_list = shlex.split(input_sql)
+	
 	#----- Start statement selection -----
-
+	
 	if lexer_list[0].upper() == "SELECT":
 		checkType = "SELECT"
 		# start loop 
 		for i in range(0, len(lexer_list) ):
-			#error +=  lexer_list[i]
 			
 			#	Columns
 			if state == 0:
-				if lexer_list[i].upper() == "FROM":
+				if lexer_list[i] == ";":
+					error += "\n[ERROR isValidSQL] Unexpected query termination"
+					return False,error
+				elif lexer_list[i].upper() == "FROM":
 					state = 1
 					
 				elif lexer_list[i].upper() != "SELECT":
@@ -618,58 +645,91 @@ def isValidSQL(input_sql):
 				
 			#	Tables
 			elif state == 1:
-				if lexer_list[i].upper() == "WHERE":
+				if lexer_list[i] == ";":
+					state = 3
+				elif lexer_list[i].upper() == "WHERE":
 					state = 2
 				elif lexer_list[i].upper() != "FROM":
 					tables_string += " "
 					tables_string += lexer_list[i]
 					
 			elif state == 2:
-				if lexer_list[i].upper() != "WHERE":
+				if lexer_list[i] == ";":
+					state = 3
+				elif lexer_list[i].upper() != "WHERE":
 					conditions_string += " "
 					conditions_string += lexer_list[i]
+			elif state == 3:
+				if warningFlag == 0:
+					error +=   "\n[WARNING isValidSQL] Statements after ';' delimiter will be ignored"
+					warningFlag += 1
+			else:
+				error +=   "\n[ERROR isValidSQL] Unknown state : " + str(state)
+				return False,error
 			
 		# end loop
-		
+		if state == 2:
+			error +=   "\n [WARNING isValidSQL] Expected ';'"
+			state = 3
+			
 	elif lexer_list[0].upper() == "DELETE":
 		checkType = "DELETE"
 		# start loop 
 		for i in range(0, len(lexer_list) ):
-			#error +=  lexer_list[i]
+			#error +=   lexer_list[i]
 			
 			#	Columns
 			if state == 0:
-				if lexer_list[i].upper() == "FROM":
+				if lexer_list[i] == ";":
+					error +=   "\n[ERROR isValidSQL] Unexpected query termination"
+					return False,error
+				elif lexer_list[i].upper() == "FROM":
 					state = 1
+					print "change state ..."
 					skipColumnCheck = True
+				elif lexer_list[i].upper() != "DELETE":
+					error +=   "\n[ERROR isValidSQL] Expected keyword : FROM, " + lexer_list[i].upper() 
+					return False,error
 			#	Tables
 			elif state == 1:
-				if lexer_list[i].upper() == "WHERE":
+				if lexer_list[i] == ";":
+					state = 3
+				elif lexer_list[i].upper() == "WHERE":
 					state = 2
 				elif lexer_list[i].upper() != "FROM":
 					tables_string += " "
 					tables_string += lexer_list[i]
 				else:
-					error +=  "\n[ERROR] Duplicate keyword : " + lexer_list[i].upper() 
+					error +=   "\n[ERROR isValidSQL] Duplicate keyword : " + lexer_list[i].upper() 
 					return False,error
 			elif state == 2:
-				if lexer_list[i].upper() != "WHERE":
+				if lexer_list[i] == ";":
+					state = 3
+				elif lexer_list[i].upper() != "WHERE":
 					conditions_string += " "
 					conditions_string += lexer_list[i]
 				else:
-					error +=  "\n[ERROR] Duplicate keyword : " + lexer_list[i].upper() 
+					error +=   "\n[ERROR isValidSQL] Duplicate keyword : " + lexer_list[i].upper() 
 					return False,error
+			elif state == 3:
+				if warningFlag > 0:
+					error +=   "\n[WARNING isValidSQL] Statements after ';' delimiter will be ignored"
+					warningFlag += 1
 			else:
-				error +=  "\n[ERROR] Unknown state : " + str(state)
+				error +=   "\n[ERROR isValidSQL] Unknown state : " + str(state)
 				return False,error
 		# end loop
-	
+
+		if state == 2:
+			error +=   "\n [WARNING isValidSQL] Expected ';'"
+			state = 3
+			
 	elif lexer_list[0].upper() == "INSERT":
 		
 		checkType = "INSERT"
 		
 		for i in range(0, len(lexer_list) ):
-			#error +=  lexer_list[i]
+			#error += lexer_list[i]
 			
 			#	Columns
 			if state == 0:
@@ -677,32 +737,44 @@ def isValidSQL(input_sql):
 					state = 1
 			#	Tables
 			elif state == 1:
-				if lexer_list[i].upper() == "VALUES":
+				if lexer_list[i] == ";":
+					error +=   "\n[ERROR isValidSQL] Unexpected query termination"
+					return False
+				elif lexer_list[i].upper() == "VALUES":
 					state = 2
 				elif lexer_list[i].upper() != "INTO":
 					schema_string += " "
 					schema_string += lexer_list[i]
 				else:
-					error +=  "\n[ERROR] Duplicate keyword : " + lexer_list[i].upper() 
+					error +=   "\n[ERROR isValidSQL] Duplicate keyword : " + lexer_list[i].upper() 
 					return False,error
 			elif state == 2:
+				if lexer_list[i] == ";":
+					state = 3
 				if lexer_list[i].upper() != "VALUES":
 					values_string += " "
 					values_string += lexer_list[i]
 				else:
-					error +=  "\n[ERROR] Duplicate keyword : " + lexer_list[i].upper() 
+					error +=   "\n[ERROR isValidSQL] Duplicate keyword : " + lexer_list[i].upper() 
 					return False,error
 			else:
-				error +=  "\n[ERROR] Unknown state : " + str(state)
+				error +=   "\n[ERROR isValidSQL] Unknown state : " + str(state)
 				return False,error
 		# end loop
 		
+		if state == 2:
+			error +=   "\n [WARNING isValidSQL] Expected ';'"
+			state = 3
 	else:
-		error +=  "\n[ERROR] Unknown command : " + lexer_list[0].upper()
+		error += "\n[ERROR isValidSQL] Unknown command : " + str(lexer_list[0].upper())
+		
 		return False,error
 	#----- End statement selection -----
-		
-
+	
+	if state != 3:
+		error +=   "\n[ERROR isValidSQL] Unexpected query structure : " + str(state)
+		return False,error
+	
 	
 	if checkType == "INSERT":
 		#Check INSERT
@@ -711,14 +783,14 @@ def isValidSQL(input_sql):
 			if isValidValuesString(values_string,target_columns):
 				return True,error
 			else:
-				error +=  "\n[ERROR] isValidValuesString failed"
-				error +=  "\n values_string : "
-				error +=  "\n" + values_string
+				#error +=   "\n[ERROR isValidSQL] isValidValuesString failed"
+				#error +=   "\n values_string : "
+				#error +=   "\n" + values_string
 				return False,error
 		else:
-			error +=  "\n[ERROR] isValidSchemaString failed"
-			error +=  "\n schema_string : "
-			error +=  "\n" + schema_string
+			#error +=   "\n[ERROR isValidSQL] isValidSchemaString failed"
+			#error +=   "\n schema_string : "
+			#error +=   "\n" + schema_string
 			return False,error
 	else:
 		selected_tables = list()
@@ -728,34 +800,35 @@ def isValidSQL(input_sql):
 		#Check DELETE
 		if isValidTables(tables_string, selected_tables):
 			if skipColumnCheck or isValidColumns(columns_string, selected_tables, selected_cloumns):
-				if isValidConditions(conditions_string, selected_tables):
+				if skipConditionsCheck or isValidConditions(conditions_string, selected_tables):
 					return True,error
 				else:
-					error +=  "\n[ERROR] isValidConditions failed"
-					error +=  "\n conditions_string : "
-					error +=  "\n" + conditions_string
+					#error +=   "\n[ERROR isValidSQL] isValidConditions failed"
+					#error +=   "\n conditions_string : "
+					#error +=   "\n" + conditions_string
 					return False,error
 			else:
-				error +=  "\n[ERROR] isValidColumns failed"
-				error +=  "\n columns_string : "
-				error +=  "\n" + columns_string
+				#error +=   "\n[ERROR isValidSQL] isValidColumns failed"
+				#error +=   "\n columns_string : "
+				#error +=   "\n" + columns_string
 				return False,error
 		else:
-			error +=  "\n[ERROR] isValidTables failed"
-			error +=  "\n tables_string : "
-			error +=  "\n" + tables_string
+			#error +=   "\n[ERROR isValidSQL ] isValidTables failed"
+			#error +=   "\n tables_string : "
+			#error +=   "\n" + tables_string
 			return False,error
 	return False,error
 	
 #	------------------------------------------------------
-#	Main Program
+#	Start of Main Program
 
-# input_sql_file  = open(_install_dir + "test_input.sql","r")
+
+# input_sql_file = open(_install_dir + "test_input.sql","r")
 # input_sql = input_sql_file.read()
 
-# if isValidSQL(input_sql):
-# 	error +=  "\n Is VALID"
+# returnValue = isValidSQL(input_sql)
 
+# print error
 
-
+#	End of Main Program
 #	------------------------------------------------------

@@ -13,8 +13,8 @@ import btree
 
 #	------------------------------------------------------
 #	Global variables
-#_install_dir = "D:\\My Documents\\AY 2017-2018 1S\\CMSC 227\\CheapSQL\\"
-_install_dir = "D:\\Djinn\\Midgard\\Geffen\\Masters\\CMSC 227\\Project Code\\CheapSQL-master\\"
+_install_dir = "D:\\My Documents\\AY 2017-2018 1S\\CMSC 227\\CheapSQL\\"
+# _install_dir = "D:\\Djinn\\Midgard\\Geffen\\Masters\\CMSC 227\\Project Code\\CheapSQL-master\\"
 _schema_ext = ".csf"
 
 #	------------------------------------------------------
@@ -822,10 +822,13 @@ def isValidSQL(input_sql):
 #	Start of Main Program
 
 
-input_sql_file = open(_install_dir + "test_input.sql","r")
-input_sql = input_sql_file.read()
+# input_sql_file = open(_install_dir + "test_input.sql","r")
+# input_sql = input_sql_file.read()
+
+input_sql = "SELECT * FROM STUDENT;" 
 
 returnValue = isValidSQL(input_sql)
+print returnValue
 
 print error
 

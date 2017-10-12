@@ -11,7 +11,7 @@ import shlex
 #	Change the long DIR to your local setting
 # sys.path.append('D:/Djinn/Midgard/Geffen/Masters/CMSC 227/Project Code/CheapSQL-master/scripts')
 #import SQLValidator as parser
-import validatesql as parser
+import SQLValidator as parser
 
 app = Flask(__name__)
 
@@ -25,7 +25,7 @@ def query():
 
 	resp = {}
 
-	query = "INSERT INTO student (birthday, studNO, STUDENTNAME ) VALUES ('1985-12-01','2001-73310','DJ Sarroza')"
+	# query = "INSERT INTO student (birthday, studNO, STUDENTNAME ) VALUES ('1985-12-01','2001-73310','DJ Sarroza')"
 
 	query = request.form.get("query")
 	print query
