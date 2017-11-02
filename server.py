@@ -11,9 +11,13 @@ import shlex
 #	Change the long DIR to your local setting
 # sys.path.append('D:/Djinn/Midgard/Geffen/Masters/CMSC 227/Project Code/CheapSQL-master/scripts')
 #import SQLValidator as parser
-import SQLValidator as parser
+import CheapSQLlib as SQL
+
 
 app = Flask(__name__)
+
+#	Global variables
+
 
 @app.route('/')
 def index():
@@ -22,41 +26,72 @@ def index():
 
 @app.route('/query',methods=['GET','POST'])
 def query():
-
+	
 	resp = {}
-
-	# query = "INSERT INTO student (birthday, studNO, STUDENTNAME ) VALUES ('1985-12-01','2001-73310','DJ Sarroza')"
-
+	
 	query = request.form.get("query")
-	print query
 	
-	#lexer_list = shlex.split(query)
+	isValidQuery,checkType,outputList,error = SQL.isValidSQL(query)
 	
-	#print "SPLIT :: "
-	#print lexer_list
-	# Parse the SQL string
-	isValidQuery,error = parser.isValidSQL(query)
+	
+	#print "\n\n isValidQuery : "
+	#print isValidQuery
+	
+	#print "\n\n checkType    : "
+	#print checkType
+	
+	#print "\n\n outputList   : "
+	#print "\n"
+	#print outputList[0]
+	#print "\n"
+	#print outputList[1]
+	
+	#print "\n\n error        : "
+	#print error
 	
 	# If valid SQL, proceed with the query
 	
 	if isValidQuery:
 	#if True:
+		
+		if checkType == "INSERT":
+			# Execute INSERT
+			resultFlag,error = SQL.executeInsert(outputList[0],outputList[1])
+		elif checkType == "SELECT":
+			# Execute SELECT
+			selected_columns = list()
+			result_list = list()
+			resultFlag,selected_columns,result_list,error = SQL.executeSelect(outputList[0],outputList[1],outputList[2])
+			
+			resp["query"] = request.form.get("query")
+			
+			columns_list = list()
+			for count in range(0,len(selected_columns)):
+				columns_list.append(selected_columns[count][1])
+				
+			resp["columns"] = columns_list
+				
+			data = []
+			
+			for count in range(0,len(result_list)):
+				#row = ["2010-42113","Ivan Marc H. Escamos","1994-06-06","MS Computer Science","Forest Resource Management","0"]
+				row = SQL.semicolonSplit(result_list[count])
+				data.append(row)
+			
+			resp["data"] = data
+			resp["numrows"] = count+1
+			resp["valid_query"] = "True"			
+			
+		else:
+			print "\nserver.py: [ERROR] Unrecognized query type"
+		
+		
+		#	Dummy shit
 
-		resp["query"] = request.form.get("query")
-
-		resp["columns"] = ["StudNo","StudentName","Birthday","Degree","Major","UnitsEarned"]
-		data = []
-
-		for i in range(20):
-			row = ["2010-42113","Ivan Marc H. Escamos","1994-06-06","MS Computer Science","Forest Resource Management","0"]
-			data.append(row)
-
-		resp["data"] = data
-		resp["numrows"] = i+1
-		resp["valid_query"] = "True"
 
 	# If not, return the error.
 	else:
+		print "[server] Invalid Query"
 		error = error.replace("\n","<br />")
 		resp["error"] = error
 
@@ -64,5 +99,8 @@ def query():
 
 
 if __name__ == '__main__':
-
+	print "\t---------------------------------------"
+	print "\tStarting CheapSQL Server v0.0.1"
+	print "\t(c) 20017"
+	print "\t---------------------------------------"
 	app.run(debug=True,host='0.0.0.0')
